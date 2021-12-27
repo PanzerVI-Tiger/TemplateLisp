@@ -111,10 +111,3 @@ struct MakeString<1, str> {
 template <DataMaker str>
 using String2 = typename MakeString<(size_t)str.dataLength, str>::result;
 
-int main() {
-    print<Int<1>>();
-    print<Float<1.0f>>();
-    print<Char<'1'>>();
-    print<String<"1">>();
-    print<String2<"abc">>();
-}
