@@ -1,0 +1,27 @@
+CMAKE_MINIMUM_REQUIRED( VERSION 2.8 )
+
+#SET( CMAKE_CXX_COMPILER /usr/bin/clang++ )
+PROJECT( TemplatedPL )
+
+SET(CMAKE_DEFAULT_STARTUP_PROJECT ALL_BUILD)
+
+SET( CMAKE_OBJ_PATH obj )
+SET( CMAKE_BIN_PATH ${PROJECT_BINARY_DIR}/bin )
+SET( EXECUTABLE_OUTPUT_PATH ${CMAKE_BIN_PATH} )
+
+#cmake -DCMAKE_BUILD_TYPE=Debug/Release ..
+#Release is default
+IF(NOT CMAKE_BUILD_TYPE)
+  SET( CMAKE_BUILD_TYPE "Release" )
+ENDIF()
+MESSAGE( "-- Build Type: ${CMAKE_BUILD_TYPE}" )
+IF( CMAKE_COMPILER_IS_GNUCC )
+  SET( CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -std=c++11 -ftemplate-depth-2000 -Wall -O0 -g -ggdb" )
+  SET( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -std=c++11 -ftemplate-depth-2000 -O3" )
+  SET( CMAKE_CXX_FLAGS_PROFILE "-std=c++11 -ftemplate-depth-2000 -O0 -pg" )
+ENDIF()
+
+INCLUDE_DIRECTORIES( . )
+
+ADD_EXECUTABLE( evaluator-test evaluator-test.cpp )
+ADD_EXECUTABLE( examples examples.cpp )
