@@ -1,6 +1,7 @@
 #include <cxxabi.h>
 #include <iostream>
 #include <type_traits>
+#include <concepts>
 
 template <typename x>
 void print() {
@@ -42,10 +43,7 @@ template<typename T>
 DataMaker(T)  -> DataMaker<T>;
 
 template <typename T>
-concept IsDataMakerString =
-requires {
-    requires std::same_as<typename T::dataType, char[T::dataLength]>;
-};
+concept IsDataMakerString = std::same_as<typename T::dataType, char[T::dataLength]>;
 
 template <DataMaker<int>>
 struct Int {};
