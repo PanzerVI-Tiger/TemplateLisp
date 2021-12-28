@@ -30,18 +30,20 @@ struct IsSameTemplate<T<TArgs...>, U<UArgs...>> : _IsSameTemplate_Type<T, U> {};
 template <template<auto...> typename T, auto... TArgs, template<auto...> typename U, auto... UArgs>
 struct IsSameTemplate<T<TArgs...>, U<UArgs...>> : _IsSameTemplate_NonType<T, U> {};
 
-/*
-template <template <typename...> typename T, template <typename...> typename U, template <typename...> typename ...Rs>
-constexpr bool IsAllSameTemplate() {
-    return IsSameTemplate<T, U>::value && IsAllSameTemplate<U, Rs...>();
-}
-template <template <auto...> typename T, template <auto...> typename U, template <auto...> typename ...Rs>
-constexpr bool IsAllSameTemplate() {
-    return IsSameTemplate<T, U>::value && IsAllSameTemplate<U, Rs...>();
-}
-*/
+template<typename ...Rs>
+struct IsAllSameTemplate{
+    static constexpr bool value = true;
+};
+template<typename T, typename U, typename... Rs>
+struct IsAllSameTemplate<T, U, Rs...>{
+    static constexpr bool value = IsSameTemplate<T, U>::value && IsAllSameTemplate<U, Rs...>::value;
+};
+template<typename T, typename U>
+struct IsAllSameTemplate<T, U>{
+    static constexpr bool value = IsSameTemplate<T, U>::value;
+};
 
 template<typename ...Ts>
-    //requires IsAllSameTemplate<Ts...>::value
+    requires IsAllSameTemplate<Ts...>::value
 struct List : DataContainer<Ts...>{};
 #endif

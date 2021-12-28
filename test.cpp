@@ -20,5 +20,6 @@ int main(void)
     print<String<"123">>();
     print<MakeCharList<String<"456">>::result>();
     print<>( IsSameTemplate<String<"123">, String<"456">>::value );
+    print<>( IsAllSameTemplate<Int<1>>::value );
     return 0;
 }
