@@ -3,11 +3,8 @@
 #include <type_traits>
 #include <concepts>
 
-template <typename x>
-void print() {
-    std::cout << abi::__cxa_demangle(typeid(x).name(), 0, 0, 0) << std::endl;
-}
-
+#ifndef TEMPLATE_BASICTYPES_HPP
+#define TEMPLATE_BASICTYPES_HPP
 template <typename T>
 struct DataMaker {
     using dataType = T;
@@ -110,3 +107,4 @@ struct MakeString<1, str> {
 template <DataMaker str>
 using String2 = typename MakeString<(size_t)str.dataLength, str>::result;
 
+#endif

@@ -1,4 +1,9 @@
-#include "TL_BasicType.hpp"
+#include "TemplateLispLib/BasicTypes.hpp"
+
+template <typename x>
+void print() {
+    std::cout << abi::__cxa_demangle(typeid(x).name(), 0, 0, 0) << std::endl;
+}
 
 int main(void)
 {
