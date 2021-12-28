@@ -1,10 +1,9 @@
-#include <cxxabi.h>
-#include <iostream>
-#include <type_traits>
-#include <concepts>
+#ifndef BASICTYPES_HPP
+#define BASICTYPES_HPP
 
-#ifndef TEMPLATE_BASICTYPES_HPP
-#define TEMPLATE_BASICTYPES_HPP
+#include <concepts>
+#include <type_traits>
+
 template <typename T>
 struct DataMaker {
     using dataType = T;
@@ -27,18 +26,18 @@ struct DataMaker<T[N]> {
     constexpr DataMaker(const T (&_value)[N]) {
         std::copy(_value, _value + N, value);
     }
-    constexpr operator const T*() const { return value; }
-    constexpr const T* operator()() const { return value; }
-    constexpr T operator []( const size_t n ) { return value[n]; }
+    constexpr operator const T *() const { return value; }
+    constexpr const T *operator()() const { return value; }
+    constexpr T operator[](const size_t n) { return value[n]; }
     constexpr DataMaker() = default;
     constexpr ~DataMaker() = default;
 };
 
-template<typename T, size_t N> 
-DataMaker(const T (&)[N])  -> DataMaker<T[N]>;
+template <typename T, size_t N>
+DataMaker(const T (&)[N]) -> DataMaker<T[N]>;
 
-template<typename T> 
-DataMaker(T)  -> DataMaker<T>;
+template <typename T>
+DataMaker(T) -> DataMaker<T>;
 
 template <typename T>
 concept IsDataMakerString = std::same_as<typename T::dataType, char[T::dataLength]>;
@@ -53,58 +52,31 @@ template <DataMaker x>
     requires(IsDataMakerString<decltype(x)>) 
 struct String {};
 
-template <template <typename...> typename T, template <typename...> typename U>
-struct _IsSameTemplate_Type : std::false_type {};
-template <template <typename...> typename T>
-struct _IsSameTemplate_Type<T, T> : std::true_type {};
-
-template <template <auto...> typename T, template <auto...> typename U>
-struct _IsSameTemplate_NonType : std::false_type {};
-template <template <auto...> typename T>
-struct _IsSameTemplate_NonType<T, T> : std::true_type {};
-template <>
-struct _IsSameTemplate_NonType<String, String> : std::true_type {};
-
-template <template <typename...> typename T, template <typename...> typename U>
-constexpr bool IsSameTemplate() {
-    return _IsSameTemplate_Type<T, U>::value;
-}
-template <template <auto...> typename T, template <auto...> typename U>
-constexpr bool IsSameTemplate() {
-    return _IsSameTemplate_NonType<T, U>::value;
-}
-template <template <typename...> typename T, template <auto...> typename U>
-constexpr bool IsSameTemplate() {
-    return false;
-}
-template <template <auto...> typename T, template <typename...> typename U>
-constexpr bool IsSameTemplate() {
-    return false;
-}
-
 template <typename T, T... data>
-struct BasicType {};
+struct TypeDataList {};
 
-template <typename A, typename B>
-struct concat {};
+template <typename, typename>
+struct ConcatCharList {};
 template <char... Args1, char... Args2>
-struct concat<BasicType<char, Args1...>, BasicType<char, Args2...>> {
-    using result = BasicType<char, Args1..., Args2...>;
+struct ConcatCharList<TypeDataList<char, Args1...>, TypeDataList<char, Args2...>> {
+    using result = TypeDataList<char, Args1..., Args2...>;
 };
 
-template <size_t N, DataMaker str>
-    requires(IsDataMakerString<decltype(str)>) 
-struct MakeString {
-    using result = typename concat<typename MakeString<N - 1, str>::result, BasicType<char, str[N - 1]>>::result;
-};
+template <typename>
+struct MakeCharList {};
+template <DataMaker s>
+struct MakeCharList<String<s>> {
+    template <size_t N, DataMaker str>
+    requires(IsDataMakerString<decltype(str)>) struct MakeCharList_Helper {
+        using result = typename ConcatCharList<typename MakeCharList_Helper<N - 1, str>::result, TypeDataList<char, str[N - 1]>>::result;
+    };
 
-template <DataMaker str>
-    requires(IsDataMakerString<decltype(str)>) 
-struct MakeString<1, str> {
-    using result = BasicType<char, str[0]>;
-};
+    template <DataMaker str>
+    requires(IsDataMakerString<decltype(str)>) struct MakeCharList_Helper<1, str> {
+        using result = TypeDataList<char, str[0]>;
+    };
 
-template <DataMaker str>
-using String2 = typename MakeString<(size_t)str.dataLength, str>::result;
+    using result = typename MakeCharList_Helper<(size_t)s.dataLength, s>::result;
+};
 
 #endif
