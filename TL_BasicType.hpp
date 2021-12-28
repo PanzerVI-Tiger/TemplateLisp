@@ -14,7 +14,7 @@ struct DataMaker {
     static constexpr size_t dataLength = 0;
     T value;
     constexpr DataMaker(T _value) : value(_value) {}
-    constexpr operator T() const { return value; };
+    constexpr operator T() const { return value; }
     constexpr T operator()() const { return value; }
     template <typename U>
     requires(!std::same_as<T, U>) constexpr DataMaker(U) = delete;
@@ -30,8 +30,9 @@ struct DataMaker<T[N]> {
     constexpr DataMaker(const T (&_value)[N]) {
         std::copy(_value, _value + N, value);
     }
-    constexpr operator const T*() const { return value; };
+    constexpr operator const T*() const { return value; }
     constexpr const T* operator()() const { return value; }
+    constexpr T operator []( const size_t n ) { return value[n]; }
     constexpr DataMaker() = default;
     constexpr ~DataMaker() = default;
 };
@@ -97,13 +98,13 @@ struct concat<BasicType<char, Args1...>, BasicType<char, Args2...>> {
 template <size_t N, DataMaker str>
     requires(IsDataMakerString<decltype(str)>) 
 struct MakeString {
-    using result = typename concat<typename MakeString<N - 1, str>::result, BasicType<char, ((const char *)str)[N - 1]>>::result;
+    using result = typename concat<typename MakeString<N - 1, str>::result, BasicType<char, str[N - 1]>>::result;
 };
 
 template <DataMaker str>
     requires(IsDataMakerString<decltype(str)>) 
 struct MakeString<1, str> {
-    using result = BasicType<char, ((const char *)str)[0]>;
+    using result = BasicType<char, str[0]>;
 };
 
 template <DataMaker str>
