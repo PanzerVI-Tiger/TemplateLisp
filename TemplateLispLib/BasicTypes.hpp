@@ -79,4 +79,10 @@ struct MakeCharList<String<s>> {
     using result = typename MakeCharList_Helper<(size_t)s.dataLength, s>::result;
 };
 
+template <DataMaker x>
+    requires(IsDataMakerString<decltype(x)>) 
+struct Var {};
+
+#define Var( name ) Var<#name>
+
 #endif

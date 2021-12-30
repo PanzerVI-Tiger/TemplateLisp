@@ -21,5 +21,6 @@ int main(void)
     print<MakeCharList<String<"456">>::result>();
     print<>( IsSameTemplate<String<"123">, String<"456">>::value );
     print<>( IsAllSameTemplate<Int<1>>::value );
+    print<Var(fuck)>();
     return 0;
 }
