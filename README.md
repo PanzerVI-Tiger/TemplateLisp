@@ -2,5 +2,5 @@
 
 references:
 
-https://github.com/hjcapple/MetaLisp
-https://github.com/Cheukyin/TemplatedPL
+* https://github.com/hjcapple/MetaLisp
+* https://github.com/Cheukyin/TemplatedPL
