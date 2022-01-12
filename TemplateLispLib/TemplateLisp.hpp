@@ -29,7 +29,7 @@ struct DataMaker<T[N]> {
     using dataType = T[N];
     static constexpr size_t dataLength = N;
     T value[N];
-    constexpr DataMaker(const T (&_value)[N]) {
+    constexpr DataMaker(const T *_value) {
         std::copy(_value, _value + N, value);
     }
     constexpr operator const T *() const { return value; }
@@ -40,7 +40,7 @@ struct DataMaker<T[N]> {
 };
 
 template <typename T, size_t N>
-DataMaker(const T (&)[N]) -> DataMaker<T[N]>;
+DataMaker(const T (&)[N]) -> DataMaker<T[N-1]>;
 
 template <typename T>
 DataMaker(T) -> DataMaker<T>;
@@ -114,7 +114,7 @@ template <template <auto...> typename T, template <auto...> typename U>
 struct _IsSameTemplate_NonType : std::false_type {};
 template <template <auto...> typename T>
 struct _IsSameTemplate_NonType<T, T> : std::true_type {};
-#if defined(__GNUC__) && !defined(__llvm__) && !defined(__INTEL_COMPILER)
+#if defined(__GNUC__)
 template <>
 struct _IsSameTemplate_NonType<String, String> : std::true_type {};
 #endif
@@ -145,7 +145,7 @@ struct StringToInt{};
 template<DataMaker str>
 constexpr int _StringToInt_Impl() {
     int temp = 0;
-    for( int i = 0; i < str.dataLength - 1; ++i ){
+    for( int i = 0; i < str.dataLength; ++i ){
         temp *= 10;
         temp += (str[i] - 48);
     }
