@@ -1,7 +1,7 @@
 #include <cxxabi.h>
 #include <iostream>
 
-#include "TemplateLispLib/HeaderFile.hpp"
+#include "TemplateLispLib/TemplateLisp.hpp"
 
 template <typename x>
 void print() {
@@ -18,9 +18,14 @@ int main(void)
     print<Float<1.0f>>();
     print<Char<'1'>>();
     print<String<"123">>();
+    /*
     print<MakeCharList<String<"456">>::result>();
     print<>( IsSameTemplate<String<"123">, String<"456">>::value );
     print<>( IsAllSameTemplate<Int<1>>::value );
     print<Var(fuck)>();
+    */
+    print<StringToInt<String<"123">>::result >();
+    print<Add<Int<1>,Int<2>,Int<3>>::result>();
+
     return 0;
 }
