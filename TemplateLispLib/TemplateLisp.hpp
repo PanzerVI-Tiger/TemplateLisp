@@ -2,8 +2,8 @@
 #define TEMPLATELISP_HPP
 
 #include <concepts>
-#include <utility>
 #include <type_traits>
+#include <utility>
 
 /****************/
 /*  Basic types */
@@ -22,7 +22,7 @@
 // ConcatCharSequence
 // MakeCharSequenceFromString
 // IsSameTemplate_Type
-// HasSameTemplateName 
+// HasSameTemplateName
 // StringToInt
 // Add
 
@@ -96,7 +96,8 @@ template <Data s>
 struct MakeCharSequenceFromString<String<s>> {
     template <size_t N, Data str>
     requires(IsDataString<decltype(str)>) struct MakeCharSequenceFromString_Helper {
-        using result = typename ConcatCharSequence<typename MakeCharSequenceFromString_Helper<N - 1, str>::result, std::integer_sequence<char, str[N - 1]>>::result;
+        using result = typename ConcatCharSequence<typename MakeCharSequenceFromString_Helper<N - 1, str>::result,
+                                                   std::integer_sequence<char, str[N - 1]>>::result;
     };
 
     template <Data str>
