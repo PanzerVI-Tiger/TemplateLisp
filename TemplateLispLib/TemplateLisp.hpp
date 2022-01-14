@@ -2,13 +2,14 @@
 #define TEMPLATELISP_HPP
 
 #include <concepts>
+#include <utility>
 #include <type_traits>
 
 /****************/
 /*  Basic types */
 /****************/
 /*
-DataMaker, TypeDataList
+DataMaker, std::integer_sequence
 */
 template <typename T>
 struct DataMaker {
@@ -40,7 +41,10 @@ struct DataMaker<T[N]> {
 };
 
 template <typename T, size_t N>
-DataMaker(const T (&)[N]) -> DataMaker<T[N-1]>;
+DataMaker(const T (&)[N]) -> DataMaker<T[N]>;
+
+template <size_t N>
+DataMaker(const char (&)[N]) -> DataMaker<char[N - 1]>;
 
 template <typename T>
 DataMaker(T) -> DataMaker<T>;
@@ -55,34 +59,31 @@ struct Char {};
 template <DataMaker<float>>
 struct Float {};
 template <DataMaker x>
-    requires(IsDataMakerString<decltype(x)>) 
-struct String {};
-
-template <typename T, T... data>
-struct TypeDataList {};
+requires(IsDataMakerString<decltype(x)>) struct String {
+};
 
 template <typename, typename>
-struct ConcatCharList {};
+struct ConcatCharSequence {};
 template <char... Args1, char... Args2>
-struct ConcatCharList<TypeDataList<char, Args1...>, TypeDataList<char, Args2...>> {
-    using result = TypeDataList<char, Args1..., Args2...>;
+struct ConcatCharSequence<std::integer_sequence<char, Args1...>, std::integer_sequence<char, Args2...>> {
+    using result = std::integer_sequence<char, Args1..., Args2...>;
 };
 
 template <typename>
-struct MakeCharList {};
+struct MakeCharSequence {};
 template <DataMaker s>
-struct MakeCharList<String<s>> {
+struct MakeCharSequence<String<s>> {
     template <size_t N, DataMaker str>
-    requires(IsDataMakerString<decltype(str)>) struct MakeCharList_Helper {
-        using result = typename ConcatCharList<typename MakeCharList_Helper<N - 1, str>::result, TypeDataList<char, str[N - 1]>>::result;
+    requires(IsDataMakerString<decltype(str)>) struct MakeCharSequence_Helper {
+        using result = typename ConcatCharSequence<typename MakeCharSequence_Helper<N - 1, str>::result, std::integer_sequence<char, str[N - 1]>>::result;
     };
 
     template <DataMaker str>
-    requires(IsDataMakerString<decltype(str)>) struct MakeCharList_Helper<1, str> {
-        using result = TypeDataList<char, str[0]>;
+    requires(IsDataMakerString<decltype(str)>) struct MakeCharSequence_Helper<1, str> {
+        using result = std::integer_sequence<char, str[0]>;
     };
 
-    using result = typename MakeCharList_Helper<(size_t)s.dataLength, s>::result;
+    using result = typename MakeCharSequence_Helper<(size_t)s.dataLength, s>::result;
 };
 
 /************/
@@ -90,14 +91,10 @@ struct MakeCharList<String<s>> {
 /************/
 
 template <DataMaker x>
-    requires(IsDataMakerString<decltype(x)>) 
-struct Var {};
+requires(IsDataMakerString<decltype(x)>) struct Var {
+};
 
-#define Var( name ) Var<#name>
-
-/*******************/
-/* Data structures */
-/*******************/
+#define Var(name) Var<#name>
 
 /*************/
 /* Functions */
@@ -107,70 +104,81 @@ template <typename...>
 struct DataContainer {};
 
 template <template <typename...> typename T, template <typename...> typename U>
-struct _IsSameTemplate_Type : std::false_type {};
-template <template <typename...> typename T>
-struct _IsSameTemplate_Type<T, T> : std::true_type {};
-template <template <auto...> typename T, template <auto...> typename U>
-struct _IsSameTemplate_NonType : std::false_type {};
-template <template <auto...> typename T>
-struct _IsSameTemplate_NonType<T, T> : std::true_type {};
-#if defined(__GNUC__)
-template <>
-struct _IsSameTemplate_NonType<String, String> : std::true_type {};
-#endif
-template <typename T, typename U>
-struct IsSameTemplate : std::false_type {};
-template <template <typename...> typename T, typename... TArgs, template <typename...> typename U, typename... UArgs>
-struct IsSameTemplate<T<TArgs...>, U<UArgs...>> : _IsSameTemplate_Type<T, U> {};
-template <template <auto...> typename T, auto... TArgs, template <auto...> typename U, auto... UArgs>
-struct IsSameTemplate<T<TArgs...>, U<UArgs...>> : _IsSameTemplate_NonType<T, U> {};
-template <typename... Rs>
-struct IsAllSameTemplate {
-    static constexpr bool value = true;
+struct IsSameTemplate_Type {
+    static constexpr bool result = false;
 };
-template <typename T, typename U, typename... Rs>
-struct IsAllSameTemplate<T, U, Rs...> {
-    static constexpr bool value = IsSameTemplate<T, U>::value && IsAllSameTemplate<U, Rs...>::value;
-};
-template <typename T, typename U>
-struct IsAllSameTemplate<T, U> {
-    static constexpr bool value = IsSameTemplate<T, U>::value;
-};
-template <typename... Ts>
-    requires IsAllSameTemplate<Ts...>::value 
-struct List : DataContainer<Ts...> {};
 
-template<typename>
-struct StringToInt{};
-template<DataMaker str>
+template <template <typename...> typename T>
+struct IsSameTemplate_Type<T, T> {
+    static constexpr bool result = true;
+};
+template <template <auto...> typename T, template <auto...> typename U>
+struct IsSameTemplate_Value {
+    static constexpr bool result = false;
+};
+
+template <template <auto...> typename T>
+struct IsSameTemplate_Value<T, T> {
+    static constexpr bool result = true;
+};
+
+template <typename... Rs>
+struct HasSameTemplateName {
+    static constexpr bool result = true;
+};
+template <
+    template <typename...> typename T, typename... TArgs,
+    template <typename...> typename U, typename... UArgs,
+    typename... Rs>
+struct HasSameTemplateName<T<TArgs...>, U<UArgs...>, Rs...> {
+    static constexpr bool result = IsSameTemplate_Type<T, U>::result && HasSameTemplateName<U<UArgs...>, Rs...>::result;
+};
+template <
+    template <auto...> typename T, auto... TArgs,
+    template <auto...> typename U, auto... UArgs,
+    typename... Rs>
+struct HasSameTemplateName<T<TArgs...>, U<UArgs...>, Rs...> {
+    static constexpr bool result = IsSameTemplate_Value<T, U>::result && HasSameTemplateName<U<UArgs...>, Rs...>::result;
+};
+
+/*******************/
+/* Data structures */
+/*******************/
+template <typename... Ts>
+requires HasSameTemplateName<Ts...>::value struct List : DataContainer<Ts...> {
+};
+
+template <typename>
+struct StringToInt {};
+template <DataMaker str>
 constexpr int _StringToInt_Impl() {
     int temp = 0;
-    for( int i = 0; i < str.dataLength; ++i ){
+    for (int i = 0; i < str.dataLength; ++i) {
         temp *= 10;
         temp += (str[i] - 48);
     }
     return temp;
 }
-template<DataMaker str>
+template <DataMaker str>
 struct StringToInt<String<str>> {
     using result = Int<_StringToInt_Impl<str>()>;
 };
 
-template<typename, typename, typename...>
-struct Add{};
-template<DataMaker a, DataMaker b>
-struct Add<Int<a>, Int<b>>{
+template <typename, typename, typename...>
+struct Add {};
+template <DataMaker a, DataMaker b>
+struct Add<Int<a>, Int<b>> {
     using result = Int<a + b>;
 };
-template<DataMaker a, DataMaker b, DataMaker ...Args>
-struct Add<Int<a>, Int<b>, Int<Args>...>{
-    using result = typename Add < typename Add<Int<a>, Int<b>> ::result, Int<Args>... > ::result;
+template <DataMaker a, DataMaker b, DataMaker... Args>
+struct Add<Int<a>, Int<b>, Int<Args>...> {
+    using result = typename Add<typename Add<Int<a>, Int<b>>::result, Int<Args>...>::result;
 };
 
-template<typename str>
-struct EvalPlus{};
+template <typename str>
+struct EvalPlus {};
 
-/* 
+/*
 template< typename ... Pair>
 struct Eval{};
 template< typename ... Exprs >

@@ -19,9 +19,9 @@ int main(void)
     print<Char<'1'>>();
     print<String<"123">>();
     
-    print<MakeCharList<String<"456">>::result>();
-    print<>( IsSameTemplate<String<"123">, String<"456">>::value );
-    print<>( IsAllSameTemplate<Int<1>>::value );
+    print<MakeCharSequence<String<"456">>::result>();
+    print<>( IsSameTemplate_Value<Int, Int>::result );
+    print<>( HasSameTemplateName<Int<1>, Int<2>>::result );
     print<Var(fuck)>();
     
     print<StringToInt<String<"123">>::result >();
