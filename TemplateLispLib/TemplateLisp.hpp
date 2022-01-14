@@ -8,58 +8,79 @@
 /****************/
 /*  Basic types */
 /****************/
-/*
-DataMaker, std::integer_sequence
-*/
+// Basic struct: Data
+// types: Int, Char, Float, String
+
+/************/
+/* Variable */
+/************/
+// Var
+
+/*************/
+/* Functions */
+/*************/
+// ConcatCharSequence
+// MakeCharSequenceFromString
+// IsSameTemplate_Type
+// HasSameTemplateName 
+// StringToInt
+// Add
+
+/*******************/
+/* Data structures */
+/*******************/
+// DataContainer
+// List
+
 template <typename T>
-struct DataMaker {
+struct Data {
     using dataType = T;
     static constexpr size_t dataLength = 0;
     T value;
-    constexpr DataMaker(T _value) : value(_value) {}
+    constexpr Data(T _value) : value(_value) {}
     constexpr operator T() const { return value; }
     constexpr T operator()() const { return value; }
     template <typename U>
-    requires(!std::same_as<T, U>) constexpr DataMaker(U) = delete;
-    constexpr DataMaker() = default;
-    constexpr ~DataMaker() = default;
+    requires(!std::same_as<T, U>) constexpr Data(U) = delete;
+    constexpr Data() = default;
+    constexpr ~Data() = default;
 };
 
 template <typename T, size_t N>
-struct DataMaker<T[N]> {
+struct Data<T[N]> {
     using dataType = T[N];
     static constexpr size_t dataLength = N;
     T value[N];
-    constexpr DataMaker(const T *_value) {
+    constexpr Data(const T *_value) {
         std::copy(_value, _value + N, value);
     }
     constexpr operator const T *() const { return value; }
     constexpr const T *operator()() const { return value; }
     constexpr T operator[](const size_t n) { return value[n]; }
-    constexpr DataMaker() = default;
-    constexpr ~DataMaker() = default;
+    constexpr Data() = default;
+    constexpr ~Data() = default;
 };
 
 template <typename T, size_t N>
-DataMaker(const T (&)[N]) -> DataMaker<T[N]>;
+Data(const T (&)[N]) -> Data<T[N]>;
 
 template <size_t N>
-DataMaker(const char (&)[N]) -> DataMaker<char[N - 1]>;
+Data(const char (&)[N]) -> Data<char[N - 1]>;
 
 template <typename T>
-DataMaker(T) -> DataMaker<T>;
+Data(T) -> Data<T>;
 
 template <typename T>
-concept IsDataMakerString = std::same_as<typename T::dataType, char[T::dataLength]>;
+concept IsDataString = std::same_as<typename T::dataType, char[T::dataLength]>;
 
-template <DataMaker<int>>
+template <Data<int>>
 struct Int {};
-template <DataMaker<char>>
+template <Data<char>>
 struct Char {};
-template <DataMaker<float>>
+template <Data<float>>
 struct Float {};
-template <DataMaker x>
-requires(IsDataMakerString<decltype(x)>) struct String {
+template <Data x>
+requires(IsDataString<decltype(x)>) struct String {
 };
 
 template <typename, typename>
@@ -70,35 +91,27 @@ struct ConcatCharSequence<std::integer_sequence<char, Args1...>, std::integer_se
 };
 
 template <typename>
-struct MakeCharSequence {};
-template <DataMaker s>
-struct MakeCharSequence<String<s>> {
-    template <size_t N, DataMaker str>
-    requires(IsDataMakerString<decltype(str)>) struct MakeCharSequence_Helper {
-        using result = typename ConcatCharSequence<typename MakeCharSequence_Helper<N - 1, str>::result, std::integer_sequence<char, str[N - 1]>>::result;
+struct MakeCharSequenceFromString {};
+template <Data s>
+struct MakeCharSequenceFromString<String<s>> {
+    template <size_t N, Data str>
+    requires(IsDataString<decltype(str)>) struct MakeCharSequenceFromString_Helper {
+        using result = typename ConcatCharSequence<typename MakeCharSequenceFromString_Helper<N - 1, str>::result, std::integer_sequence<char, str[N - 1]>>::result;
     };
 
-    template <DataMaker str>
-    requires(IsDataMakerString<decltype(str)>) struct MakeCharSequence_Helper<1, str> {
+    template <Data str>
+    requires(IsDataString<decltype(str)>) struct MakeCharSequenceFromString_Helper<1, str> {
         using result = std::integer_sequence<char, str[0]>;
     };
 
-    using result = typename MakeCharSequence_Helper<(size_t)s.dataLength, s>::result;
+    using result = typename MakeCharSequenceFromString_Helper<(size_t)s.dataLength, s>::result;
 };
 
-/************/
-/* Variable */
-/************/
-
-template <DataMaker x>
-requires(IsDataMakerString<decltype(x)>) struct Var {
+template <Data x>
+requires(IsDataString<decltype(x)>) struct Var {
 };
 
 #define Var(name) Var<#name>
-
-/*************/
-/* Functions */
-/*************/
 
 template <typename...>
 struct DataContainer {};
@@ -141,16 +154,13 @@ struct HasSameTemplateName<T<TArgs...>, U<UArgs...>, Rs...> {
     static constexpr bool result = IsSameTemplate_Value<T, U>::result && HasSameTemplateName<U<UArgs...>, Rs...>::result;
 };
 
-/*******************/
-/* Data structures */
-/*******************/
 template <typename... Ts>
 requires HasSameTemplateName<Ts...>::value struct List : DataContainer<Ts...> {
 };
 
 template <typename>
 struct StringToInt {};
-template <DataMaker str>
+template <Data str>
 constexpr int _StringToInt_Impl() {
     int temp = 0;
     for (int i = 0; i < str.dataLength; ++i) {
@@ -159,18 +169,18 @@ constexpr int _StringToInt_Impl() {
     }
     return temp;
 }
-template <DataMaker str>
+template <Data str>
 struct StringToInt<String<str>> {
     using result = Int<_StringToInt_Impl<str>()>;
 };
 
 template <typename, typename, typename...>
 struct Add {};
-template <DataMaker a, DataMaker b>
+template <Data a, Data b>
 struct Add<Int<a>, Int<b>> {
     using result = Int<a + b>;
 };
-template <DataMaker a, DataMaker b, DataMaker... Args>
+template <Data a, Data b, Data... Args>
 struct Add<Int<a>, Int<b>, Int<Args>...> {
     using result = typename Add<typename Add<Int<a>, Int<b>>::result, Int<Args>...>::result;
 };

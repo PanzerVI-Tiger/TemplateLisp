@@ -19,7 +19,7 @@ int main(void)
     print<Char<'1'>>();
     print<String<"123">>();
     
-    print<MakeCharSequence<String<"456">>::result>();
+    print<MakeCharSequenceFromString<String<"456">>::result>();
     print<>( IsSameTemplate_Value<Int, Int>::result );
     print<>( HasSameTemplateName<Int<1>, Int<2>>::result );
     print<Var(fuck)>();
