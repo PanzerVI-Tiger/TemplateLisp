@@ -14,18 +14,12 @@ void print(T x) {
 
 int main(void)
 {
-    print<Int<1>>();
-    print<Float<1.0f>>();
+    print<Number<1>>();
+    print<Bool<true>>();
     print<Char<'1'>>();
-    print<String<"123">>();
-    
-    print<MakeCharSequenceFromString<String<"456">>::result>();
-    print<>( IsSameTemplate_Value<Int, Int>::result );
-    print<>( HasSameTemplateName<Int<1>, Int<2>>::result );
-    print<Var(fuck)>();
-    
-    print<StringToInt<String<"123">>::result >();
-    print<Add<Int<1>,Int<2>,Int<3>>::result>();
+    print<String<"1">>();
 
+    print<Add< Number<1>, Number<3.0f>>::result>();
+    
     return 0;
 }
