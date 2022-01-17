@@ -138,21 +138,17 @@ concept IsCppChar = std::same_as<typename T::dataType, char>;
 template <typename T>
 concept IsCppBool = std::same_as<typename T::dataType, bool>;
 
-template <Data x>
-requires(IsCppNumber<decltype(x)>) struct Number {
-};
+template <Data x> requires(IsCppNumber<decltype(x)>) 
+struct Number {};
 
-template <Data x>
-requires(IsCppChar<decltype(x)>) struct Char {
-};
+template <Data x> requires(IsCppChar<decltype(x)>) 
+struct Char {};
 
-template <Data x>
-requires(IsCppBool<decltype(x)>) struct Bool {
-};
+template <Data x> requires(IsCppBool<decltype(x)>) 
+struct Bool {};
 
-template <Data x>
-requires(IsCppCharArray<decltype(x)>) struct String {
-};
+template <Data x> requires(IsCppCharArray<decltype(x)>) 
+struct String {};
 
 template <typename T>
 concept IsNumber = HasSameTemplateName<Number<1>, T>::result;
