@@ -20,6 +20,13 @@ int main(void)
     print<String<"1">>();
 
     print<Add< Number<1>, Number<3.0f>>::result>();
+
+    print<>(HasSameTemplateName<Number<1>, Bool<true>>::result);
+
+    print< List<Number<1>> >();
+
+    print<StringToCharList<String<"fuck you">>::result>();
+    print<>(StringToCharList<String<"fuck you">>::result::size);
     
     return 0;
 }

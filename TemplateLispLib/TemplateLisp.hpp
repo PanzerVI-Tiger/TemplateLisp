@@ -10,29 +10,6 @@
 /****************/
 // Basic struct: Data
 // type: Number, Bool, Char, String
-// concepts: IsTypeInteger, IsTypeDecimal, IsTypeNumber, IsCppCharArray
-
-/************/
-/* Variable */
-/************/
-// Var
-
-/*************/
-/* Functions */
-/*************/
-// ConcatCharSequence
-// MakeCharSequenceFromString
-// IsSameTemplate_Type
-// HasSameTemplateName
-// TODO: StringToInt
-// Add
-// GetBasicType
-
-/*******************/
-/* Data structures */
-/*******************/
-// DataContainer
-// List
 
 /************/
 /* concepts */
@@ -45,6 +22,32 @@
 // IsChar
 // IsBool
 // IsString
+
+
+/************/
+/* Variable */
+/************/
+// Var
+
+/*************/
+/* Functions */
+/*************/
+// ConcatContainer
+// StringToCharList
+// IsSameTemplate_Type
+// IsSameTemplate_Value
+// HasSameTemplateName
+// TODO: StringToInt
+// Add
+// GetBasicType
+
+/*******************/
+/* Data structures */
+/*******************/
+// DataContainer
+// List
+
+//------------------------------------------------------------------------------------
 
 template <template <typename...> typename T, template <typename...> typename U>
 struct IsSameTemplate_Type {
@@ -65,7 +68,7 @@ struct IsSameTemplate_Value<T, T> {
     static constexpr bool result = true;
 };
 
-template <typename... Rs>
+template <typename... Ts>
 struct HasSameTemplateName {
     static constexpr bool result = true;
 };
@@ -150,55 +153,67 @@ struct Bool {};
 template <Data x> requires(IsCppCharArray<decltype(x)>) 
 struct String {};
 
-template <typename T>
-concept IsNumber = HasSameTemplateName<Number<1>, T>::result;
+template <template<auto...> typename T>
+concept IsNumber = IsSameTemplate_Value<Number, T>::result;
 
-template <typename T>
-concept IsBool = HasSameTemplateName<Bool<true>, T>::result;
+template <template<auto...> typename T>
+concept IsBool = IsSameTemplate_Value<Bool, T>::result;
 
-template <typename T>
-concept IsChar = HasSameTemplateName<Char<'1'>, T>::result;
+template <template<auto...> typename T>
+concept IsChar = IsSameTemplate_Value<Char, T>::result;
 
-template <typename T>
-concept IsString = HasSameTemplateName<String<"1">, T>::result;
+template <template<auto...> typename T>
+concept IsString = IsSameTemplate_Value<String, T>::result;
 
-template <typename, typename>
-struct ConcatCharSequence {};
-template <char... Args1, char... Args2>
-struct ConcatCharSequence<std::integer_sequence<char, Args1...>, std::integer_sequence<char, Args2...>> {
-    using result = std::integer_sequence<char, Args1..., Args2...>;
-};
-
-template <typename>
-struct MakeCharSequenceFromString {};
-template <Data s>
-struct MakeCharSequenceFromString<String<s>> {
-    template <size_t N, Data str>
-    requires(IsCppCharArray<decltype(str)>) struct MakeCharSequenceFromString_Helper {
-        using result = typename ConcatCharSequence<typename MakeCharSequenceFromString_Helper<N - 1, str>::result,
-                                                   std::integer_sequence<char, str[N - 1]>>::result;
-    };
-
-    template <Data str>
-    requires(IsCppCharArray<decltype(str)>) struct MakeCharSequenceFromString_Helper<1, str> {
-        using result = std::integer_sequence<char, str[0]>;
-    };
-
-    using result = typename MakeCharSequenceFromString_Helper<(size_t)s.dataLength, s>::result;
-};
-
-template <Data x>
-requires(IsCppCharArray<decltype(x)>) struct Var {
-};
+template <Data x> requires(IsCppCharArray<decltype(x)>) 
+struct Var {};
 
 #define Var(name) Var<#name>
 
-template <typename...>
-struct DataContainer {};
-
 template <typename... Ts>
-requires HasSameTemplateName<Ts...>::value struct List : DataContainer<Ts...> {
+struct DataContainer {
+    static constexpr size_t size = sizeof...(Ts);
 };
+
+template <typename... Ts> requires HasSameTemplateName<Ts...>::result 
+struct List : DataContainer<Ts...> {
+    static constexpr size_t size = sizeof...(Ts);
+};
+
+template<template<typename...> typename T>
+concept IsDataContainer = IsSameTemplate_Type<T, DataContainer>::result || IsSameTemplate_Type<T, List>::result;
+
+template <typename T, typename U, typename... Rs>
+struct ConcatContainer {
+    using result = typename ConcatContainer<typename ConcatContainer<T, U>::result, Rs...>::result;
+};
+template <typename... Args1, typename... Args2, template<typename...> typename Container> 
+    requires (IsDataContainer<Container>)
+struct ConcatContainer<Container<Args1...>, Container<Args2...>> {
+    using result = Container<Args1..., Args2...>;
+};
+
+template <typename>
+struct StringToCharList {};
+template <Data s>
+struct StringToCharList<String<s>> {
+
+    template <size_t N, Data str> 
+        requires(IsCppCharArray<decltype(str)>) 
+    struct StringToCharList_Helper {
+        using result = typename ConcatContainer<typename StringToCharList_Helper<N - 1, str>::result,
+                                                   List<Char<str[N - 1]>>>::result;
+    };
+
+    template <Data str> 
+        requires(IsCppCharArray<decltype(str)>) 
+    struct StringToCharList_Helper<1, str> {
+        using result = List<Char<str[0]>>;
+    };
+
+    using result = typename StringToCharList_Helper<(size_t)s.dataLength, s>::result;
+};
+
 
 /*
 template <typename>
