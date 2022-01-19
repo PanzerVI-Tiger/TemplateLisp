@@ -312,6 +312,9 @@ struct ExpandAndFill<container<head, tail...>, Index<index>, to_add> {
 };
 
 /*
+EvalBF< command:List<Char<>...>, recorder::stack<Index<>...>, cmdPtr, memory::List<Char<>...>, output::List<Char<>...>, memPtr >
+
+old design:
 template<typename env = CharList<>, int idx = 0, typename outPut = CharList<>> 
 struct BFEnv{};
 
@@ -380,6 +383,7 @@ struct StringToInt<String<str>> {
 */
 
 /*
+lisp:
 template< typename ... Pair>
 struct Eval{};
 template< typename ... Exprs >
