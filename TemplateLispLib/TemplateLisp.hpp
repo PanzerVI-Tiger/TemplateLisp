@@ -36,7 +36,7 @@
 // StringToCharList
 // IsSameTemplate_Type
 // IsSameTemplate_Value
-// HasSameTemplateName
+// HasSameTemplate
 // TODO: StringToInt
 // Add
 // GetBasicType
@@ -51,40 +51,40 @@
 
 template <template <typename...> typename T, template <typename...> typename U>
 struct IsSameTemplate_Type {
-    static constexpr bool result = false;
+    static constexpr bool value = false;
 };
 
 template <template <typename...> typename T>
 struct IsSameTemplate_Type<T, T> {
-    static constexpr bool result = true;
+    static constexpr bool value = true;
 };
 template <template <auto...> typename T, template <auto...> typename U>
 struct IsSameTemplate_Value {
-    static constexpr bool result = false;
+    static constexpr bool value = false;
 };
 
 template <template <auto...> typename T>
 struct IsSameTemplate_Value<T, T> {
-    static constexpr bool result = true;
+    static constexpr bool value = true;
 };
 
 template <typename... Ts>
-struct HasSameTemplateName {
-    static constexpr bool result = true;
+struct HasSameTemplate {
+    static constexpr bool value = true;
 };
 template <
     template <typename...> typename T, typename... TArgs,
     template <typename...> typename U, typename... UArgs,
     typename... Rs>
-struct HasSameTemplateName<T<TArgs...>, U<UArgs...>, Rs...> {
-    static constexpr bool result = IsSameTemplate_Type<T, U>::result && HasSameTemplateName<U<UArgs...>, Rs...>::result;
+struct HasSameTemplate<T<TArgs...>, U<UArgs...>, Rs...> {
+    static constexpr bool value = IsSameTemplate_Type<T, U>::value && HasSameTemplate<U<UArgs...>, Rs...>::value;
 };
 template <
     template <auto...> typename T, auto... TArgs,
     template <auto...> typename U, auto... UArgs,
     typename... Rs>
-struct HasSameTemplateName<T<TArgs...>, U<UArgs...>, Rs...> {
-    static constexpr bool result = IsSameTemplate_Value<T, U>::result && HasSameTemplateName<U<UArgs...>, Rs...>::result;
+struct HasSameTemplate<T<TArgs...>, U<UArgs...>, Rs...> {
+    static constexpr bool value = IsSameTemplate_Value<T, U>::value && HasSameTemplate<U<UArgs...>, Rs...>::value;
 };
 
 template <typename T>
@@ -102,7 +102,7 @@ template <typename T, size_t N>
 struct Data<T[N]> {
     using dataType = T[N];
     static constexpr size_t dataLength = N;
-    T value[N];
+    T value[N]{};
     constexpr Data(const T *_value) {
         std::copy(_value, _value + N, value);
     }
@@ -141,6 +141,11 @@ concept IsCppChar = std::same_as<typename T::dataType, char>;
 template <typename T>
 concept IsCppBool = std::same_as<typename T::dataType, bool>;
 
+template<size_t x>
+struct Index{
+    static constexpr size_t value = x;
+};
+
 template <Data x> requires(IsCppNumber<decltype(x)>) 
 struct Number {};
 
@@ -153,6 +158,7 @@ struct Bool {};
 template <Data x> requires(IsCppCharArray<decltype(x)>) 
 struct String {};
 
+/*
 template <template<auto...> typename T>
 concept IsNumber = IsSameTemplate_Value<Number, T>::result;
 
@@ -164,6 +170,7 @@ concept IsChar = IsSameTemplate_Value<Char, T>::result;
 
 template <template<auto...> typename T>
 concept IsString = IsSameTemplate_Value<String, T>::result;
+*/
 
 template <Data x> requires(IsCppCharArray<decltype(x)>) 
 struct Var {};
@@ -175,22 +182,33 @@ struct DataContainer {
     static constexpr size_t size = sizeof...(Ts);
 };
 
-template <typename... Ts> requires HasSameTemplateName<Ts...>::result 
+template <typename... Ts> 
+    requires (HasSameTemplate<Ts...>::value)
 struct List : DataContainer<Ts...> {
     static constexpr size_t size = sizeof...(Ts);
 };
 
-template<template<typename...> typename T>
-concept IsDataContainer = IsSameTemplate_Type<T, DataContainer>::result || IsSameTemplate_Type<T, List>::result;
+template<typename T>
+concept HasContainerTemplate = HasSameTemplate<DataContainer<>, T>::value || HasSameTemplate<List<>, T>::value;
 
-template <typename T, typename U, typename... Rs>
+template<template<typename...> typename T>
+concept IsContainer = HasContainerTemplate<T<>>;
+
+template<typename T>
+concept HasListTemplate = HasSameTemplate<List<>, T>::value;
+
+template<template<typename...> typename T>
+concept IsList = HasListTemplate<T<>>;
+
+
+template <typename container1, typename container2, typename... containers>
+    requires(HasContainerTemplate<container1> && HasSameTemplate<container1, container2, containers...>::value)
 struct ConcatContainer {
-    using result = typename ConcatContainer<typename ConcatContainer<T, U>::result, Rs...>::result;
+    using result = typename ConcatContainer<typename ConcatContainer<container1, container2>::result, containers...>::result;
 };
-template <typename... Args1, typename... Args2, template<typename...> typename Container> 
-    requires (IsDataContainer<Container>)
-struct ConcatContainer<Container<Args1...>, Container<Args2...>> {
-    using result = Container<Args1..., Args2...>;
+template <typename... elements1, typename... elements2, template<typename...> typename container> 
+struct ConcatContainer<container<elements1...>, container<elements2...>> {
+    using result = container<elements1..., elements2...>;
 };
 
 template <typename>
@@ -214,6 +232,134 @@ struct StringToCharList<String<s>> {
     using result = typename StringToCharList_Helper<(size_t)s.dataLength, s>::result;
 };
 
+template <typename num1, typename num2, typename... numbers>
+struct Add {
+    using result = typename Add<typename Add<num1, num2>::result, numbers...>::result;
+};
+template <Data num1, Data num2>
+struct Add<Number<num1>, Number<num2>> {
+    using result = Number<num1 + num2>;
+};
+
+template <typename container, typename index>
+    requires(HasContainerTemplate<container> && index::value < container::size)
+struct GetElementAt {};
+template <template <typename...> typename container, typename head, typename... tail, size_t index>
+struct GetElementAt<container<head, tail...>, Index<index>> {
+    using result = typename GetElementAt<container<tail...>, Index<index - 1>>::result;
+};
+template <template <typename...> typename container, typename head, typename... tail>
+struct GetElementAt<container<head, tail...>, Index<0>> {
+    using result = head;
+};
+
+template <typename container, typename index> 
+    requires(HasContainerTemplate<container> && index::value < container::size)
+struct IncreaseOne {};
+template <template <typename...> typename container, typename head, typename... tail, size_t index>
+struct IncreaseOne<container<head, tail...>, Index<index>> {
+    using result = typename ConcatContainer<
+        container<head>,
+        typename IncreaseOne<container<tail...>, Index<index - 1>>::result>::result;
+};
+template <template <typename...> typename container, template <Data...> typename head, Data x, typename... tail>
+struct IncreaseOne<container<head<x>, tail...>, Index<1>> { // TODO: head should be Number<> or Char<>
+    using result = container<head<x + 1>, tail...>;
+};
+
+template <typename container, typename index> 
+   requires(HasContainerTemplate<container> && index::value < container::size)
+struct DecreaseOne {};
+template <template <typename...> typename container, typename head, typename... tail, size_t index>
+struct DecreaseOne<container<head, tail...>, Index<index>> {
+    using result = typename ConcatContainer<
+        container<head>,
+        typename DecreaseOne<container<tail...>, Index<index - 1>>::result>::result;
+};
+template <template <typename...> typename container, template <Data...> typename head, Data x, typename... tail>
+struct DecreaseOne<container<head<x>, tail...>, Index<1>> { // TODO: head should be Number<> or Char<>
+    using result = container<head<x - 1>, tail...>;
+};
+
+template <typename container, typename index, typename to_add>
+    requires(HasContainerTemplate<container>)
+struct ExpandAndFill {};
+template <typename container, size_t index, typename to_add>
+    requires(index <= container::size) 
+struct ExpandAndFill<container, Index<index>, to_add> {
+    using result = container;
+};
+template <template <typename...> typename container, typename head, typename... tail, size_t index, typename to_add>
+    requires(index > container<head, tail...>::size && (IsContainer<container> || (IsList<container> && HasSameTemplate<to_add, head>::value))) 
+struct ExpandAndFill<container<head, tail...>, Index<index>, to_add> {
+
+    template <typename idx, typename ta>
+    struct ExpandAndFill_Impl {};
+    template <size_t idx, typename ta>
+    struct ExpandAndFill_Impl<Index<idx>, ta> {
+        using result = typename ConcatContainer<
+            container<ta>,
+            typename ExpandAndFill_Impl<Index<idx - 1>, ta>::result>::result;
+    };
+    template <typename ta>
+    struct ExpandAndFill_Impl<Index<1>, ta> {
+        using result = container<ta>;
+    };
+
+    using result = typename ConcatContainer<
+        container<head, tail...>,
+        typename ExpandAndFill_Impl<Index<index - container<head, tail...>::size>, to_add>::result>::result;
+};
+
+/*
+template<typename env = CharList<>, int idx = 0, typename outPut = CharList<>> 
+struct BFEnv{};
+
+template<typename env, typename chr>
+struct EvalBrainFuck_Impl{};
+template<char... chars, int idx, typename outPut>
+struct EvalBrainFuck_Impl<BFEnv<CharList<chars...>, idx, outPut>, Char<'>'>>{
+    using result = BFEnv<CharList<chars...>, idx+1, outPut>;
+};
+template<char... chars, int idx, typename outPut>
+struct EvalBrainFuck_Impl<BFEnv<CharList<chars...>, idx, outPut>, Char<'<'>>{
+    using result = BFEnv<CharList<chars...>, idx-1, outPut>;
+};
+template<char... chars, int idx, typename outPut>
+struct EvalBrainFuck_Impl<BFEnv<CharList<chars...>, idx, outPut>, Char<'+'>>{
+    using result = BFEnv< typename IncreaseOne< CharList<chars...>, idx >::result, idx, outPut>;
+};
+template<char... chars, int idx, typename outPut>
+struct EvalBrainFuck_Impl<BFEnv<CharList<chars...>, idx, outPut>, Char<'-'>>{
+    using result = BFEnv< typename DecreaseOne< CharList<chars...>, idx >::result, idx, outPut>;
+};
+template<char... chars, int idx, typename outPut>
+struct EvalBrainFuck_Impl<BFEnv<CharList<chars...>, idx, outPut>, Char<'.'>>{
+
+    using result = BFEnv<
+                        CharList<chars...>, 
+                        idx, 
+                        typename ConcateCharList< 
+                                                outPut, 
+                                                CharList<GetCharListAt<CharList<chars...>, idx>::result>
+                                                > ::result
+                        >;
+};
+
+template <typename str, typename env = void>
+struct EvalBrainFuck {};
+template <typename chr, typename... rests, typename env>
+struct EvalBrainFuck<List<chr, rests...>, env> {
+    using result = typename EvalBrainFuck< 
+                                         List<rests...>,
+                                         typename EvalBrainFuck_Impl<BFEnv<CharList<>, 0, CharList<>>, chr>::result
+                                         > ::result;
+};
+template <typename chr, typename env>
+struct EvalBrainFuck<List<chr>, env> {
+    using result = typename EvalBrainFuck_Impl< env, chr >::result;
+};
+*/
 
 /*
 template <typename>
@@ -232,18 +378,6 @@ struct StringToInt<String<str>> {
     using result = Int<_StringToInt_Impl<str>()>;
 };
 */
-
-template <typename T, typename U, typename... Rs>
-struct Add {
-    using result = typename Add<typename Add<T, U>::result, Rs...>::result;
-};
-template <Data a, Data b>
-struct Add<Number<a>, Number<b>> {
-    using result = Number<a + b>;
-};
-
-template <typename str>
-struct EvalPlus {};
 
 /*
 template< typename ... Pair>

@@ -21,12 +21,25 @@ int main(void)
 
     print<Add< Number<1>, Number<3.0f>>::result>();
 
-    print<>(HasSameTemplateName<Number<1>, Bool<true>>::result);
+    print<>(HasSameTemplate<Number<1>, Bool<true>>::value);
 
     print< List<Number<1>> >();
 
     print<StringToCharList<String<"fuck you">>::result>();
     print<>(StringToCharList<String<"fuck you">>::result::size);
+
+    using test1 = GetElementAt< List<Number<1>, Number<2>, Number<3>, Number<4>>, Index<0>>::result;
+    print<test1>();
+
+    using test2 = ExpandAndFill< 
+                    List<Number<1>, Number<2>, Number<3>, Number<4>>, 
+                    Index<6>, 
+                    Number<0>>::result;
+    print<test2>();
+
+    using test3 = IncreaseOne< List<Number<1>, Number<2>, Number<3>, Number<4>>, Index<3>>::result;
+    print<test3>();
+
     
     return 0;
 }
