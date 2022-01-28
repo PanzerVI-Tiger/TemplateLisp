@@ -242,19 +242,19 @@ struct Add<Number<num1>, Number<num2>> {
 };
 
 template <typename container, typename index>
-    requires(HasContainerTemplate<container> && index::value < container::size)
+    requires(HasContainerTemplate<container> && index::value <= container::size)
 struct GetElementAt {};
 template <template <typename...> typename container, typename head, typename... tail, size_t index>
 struct GetElementAt<container<head, tail...>, Index<index>> {
     using result = typename GetElementAt<container<tail...>, Index<index - 1>>::result;
 };
 template <template <typename...> typename container, typename head, typename... tail>
-struct GetElementAt<container<head, tail...>, Index<0>> {
+struct GetElementAt<container<head, tail...>, Index<1>> {
     using result = head;
 };
 
 template <typename container, typename index> 
-    requires(HasContainerTemplate<container> && index::value < container::size)
+    requires(HasContainerTemplate<container> && index::value <= container::size)
 struct IncreaseOne {};
 template <template <typename...> typename container, typename head, typename... tail, size_t index>
 struct IncreaseOne<container<head, tail...>, Index<index>> {
@@ -266,9 +266,19 @@ template <template <typename...> typename container, template <Data...> typename
 struct IncreaseOne<container<head<x>, tail...>, Index<1>> { // TODO: head should be Number<> or Char<>
     using result = container<head<x + 1>, tail...>;
 };
+/*
+template <template <typename...> typename container, Data x, typename... tail>
+struct IncreaseOne<container<Number<x>, tail...>, Index<1>> { // TODO: head should be Number<> or Char<>
+    using result = container<Number<x + 1>, tail...>;
+};
+template <template <typename...> typename container, Data x, typename... tail>
+struct IncreaseOne<container<Char<x>, tail...>, Index<1>> { // TODO: head should be Number<> or Char<>
+    using result = container<Char<x + char(1)>, tail...>;
+};
+*/
 
 template <typename container, typename index> 
-   requires(HasContainerTemplate<container> && index::value < container::size)
+   requires(HasContainerTemplate<container> && index::value <= container::size)
 struct DecreaseOne {};
 template <template <typename...> typename container, typename head, typename... tail, size_t index>
 struct DecreaseOne<container<head, tail...>, Index<index>> {
@@ -289,9 +299,9 @@ template <typename container, size_t index, typename to_add>
 struct ExpandAndFill<container, Index<index>, to_add> {
     using result = container;
 };
-template <template <typename...> typename container, typename head, typename... tail, size_t index, typename to_add>
-    requires(index > container<head, tail...>::size && (IsContainer<container> || (IsList<container> && HasSameTemplate<to_add, head>::value))) 
-struct ExpandAndFill<container<head, tail...>, Index<index>, to_add> {
+template <template <typename...> typename container, typename... tail, size_t index, typename to_add>
+    requires(index > container<tail...>::size && (IsContainer<container>)) 
+struct ExpandAndFill<container<tail...>, Index<index>, to_add> {
 
     template <typename idx, typename ta>
     struct ExpandAndFill_Impl {};
@@ -307,12 +317,209 @@ struct ExpandAndFill<container<head, tail...>, Index<index>, to_add> {
     };
 
     using result = typename ConcatContainer<
-        container<head, tail...>,
-        typename ExpandAndFill_Impl<Index<index - container<head, tail...>::size>, to_add>::result>::result;
+        container<tail...>,
+        typename ExpandAndFill_Impl<Index<index - container<tail...>::size>, to_add>::result>::result;
+};
+
+template<typename condition, typename result1, typename result2>
+struct _IfElse{};
+template<typename result1, typename result2>
+struct _IfElse<Bool<true>, result1, result2>{
+    using result = result1;
+};
+template<typename result1, typename result2>
+struct _IfElse<Bool<false>, result1, result2>{
+    using result = result2;
+};
+
+template<typename condition, typename result1, typename result2>
+using IfElse = typename _IfElse<condition, result1, result2>::result;
+
+template<typename container, typename to_push>
+struct Push{};
+template<template <typename...> typename container, typename... tail, typename to_push>
+struct Push<container<tail...>, to_push>{
+    using result = container<to_push, tail...>;
+};
+
+template<typename container>
+struct Pop{};
+template<template <typename...> typename container, typename head, typename... tail> // requires size >= 1
+struct Pop<container<head, tail...>>{
+    using result = container<tail...>;
+};
+
+template<typename container>
+struct Peak{};
+template<template <typename...> typename container, typename head, typename... tail> // requires size >= 1
+struct Peak<container<head, tail...>>{
+    using result = head;
+};
+
+template< typename source, typename recorder, typename src_ptr, typename memory, typename output, typename mem_ptr>
+struct EvalBF_Impl{};
+//----------------------------------------------------------------
+template <typename cmd, typename source, typename recorder, typename src_ptr, typename data, typename memory, typename output, typename mem_ptr>
+struct EvalBF_ImplHelper {};
+template <typename source, typename recorder, size_t src_ptr_index, typename data, typename memory, typename output, size_t mem_ptr_index>
+struct EvalBF_ImplHelper<Char<'+'>, source, recorder, Index<src_ptr_index>, data, memory, output, Index<mem_ptr_index>> {
+    using result =
+        typename EvalBF_Impl<
+            source,
+            recorder,
+            Index<src_ptr_index + 1>,
+            typename IncreaseOne<typename ExpandAndFill<memory, Index<mem_ptr_index>, Number<0>>::result, Index<mem_ptr_index>>::result,
+            output,
+            Index<mem_ptr_index>
+        >::result;
+};
+template <typename source, typename recorder, size_t src_ptr_index, typename data, typename memory, typename output, size_t mem_ptr_index>
+struct EvalBF_ImplHelper<Char<'-'>, source, recorder, Index<src_ptr_index>, data, memory, output, Index<mem_ptr_index>> {
+    using result =
+        typename EvalBF_Impl<
+            source,
+            recorder,
+            Index<src_ptr_index + 1>,
+            typename DecreaseOne<typename ExpandAndFill<memory, Index<mem_ptr_index>, Number<0>>::result, Index<mem_ptr_index>>::result,
+            output,
+            Index<mem_ptr_index>
+        >::result;
+};
+template <typename source, typename recorder, size_t src_ptr_index, typename data, typename memory, typename output, size_t mem_ptr_index>
+struct EvalBF_ImplHelper<Char<'>'>, source, recorder, Index<src_ptr_index>, data, memory, output, Index<mem_ptr_index>> {
+    using result =
+        typename EvalBF_Impl<
+            source,
+            recorder,
+            Index<src_ptr_index + 1>,
+            typename ExpandAndFill<memory, Index<mem_ptr_index + 1>, Number<0>>::result,
+            output,
+            Index<mem_ptr_index + 1>
+        >::result;
+};
+template <typename source, typename recorder, size_t src_ptr_index, typename data, typename memory, typename output, size_t mem_ptr_index>
+struct EvalBF_ImplHelper<Char<'<'>, source, recorder, Index<src_ptr_index>, data, memory, output, Index<mem_ptr_index>> {
+    using result =
+        typename EvalBF_Impl<
+            source,
+            recorder,
+            Index<src_ptr_index + 1>,
+            memory,
+            output,
+            Index<mem_ptr_index - 1>
+        >::result;
+};
+template<typename source, typename recorder, size_t src_ptr_index, typename data, typename memory, typename output, size_t mem_ptr_index>
+struct EvalBF_ImplHelper<Char<'.'>, source, recorder, Index<src_ptr_index>, data, memory, output, Index<mem_ptr_index>>{
+    using result =
+        typename EvalBF_Impl<
+            source,
+            recorder,
+            Index<src_ptr_index + 1>,
+            memory,
+            typename ConcatContainer<output, List<typename GetElementAt<memory, Index<mem_ptr_index>>::result>>::result,
+            Index<mem_ptr_index>
+        >::result;
+};
+template <typename source, typename recorder, size_t src_ptr_index, typename data, typename memory, typename output, size_t mem_ptr_index>
+struct EvalBF_ImplHelper<Char<'['>, source, recorder, Index<src_ptr_index>, data, memory, output, Index<mem_ptr_index>> {
+    using result =
+        typename EvalBF_Impl<
+            source,
+            typename Push<recorder, Index<src_ptr_index>>::result,
+            Index<src_ptr_index + 1>,
+            memory,
+            output,
+            Index<mem_ptr_index>
+        >::result;
+};
+template <typename source, typename recorder, size_t src_ptr_index, typename data, typename memory, typename output, size_t mem_ptr_index>
+struct EvalBF_ImplHelper<Char<']'>, source, recorder, Index<src_ptr_index>, data, memory, output, Index<mem_ptr_index>> {
+    using result =
+        typename EvalBF_Impl<
+            source,
+            typename Pop<recorder>::result,
+            typename Peak<recorder>::result,
+            memory,
+            output,
+            Index<mem_ptr_index>
+        >::result;
+};
+template <typename source, typename recorder, size_t src_ptr_index, typename memory, typename output, size_t mem_ptr_index>
+struct EvalBF_ImplHelper<Char<']'>, source, recorder, Index<src_ptr_index>, Number<0>, memory, output, Index<mem_ptr_index>> {
+    using result =
+        typename EvalBF_Impl<
+            source,
+            typename Pop<recorder>::result,
+            Index<src_ptr_index + 1>,
+            memory,
+            output,
+            Index<mem_ptr_index>
+        >::result;
+};
+//----------------------------------------------------------------
+template< typename source, typename recorder, size_t src_ptr_index, typename memory, typename output, size_t mem_ptr_index>
+    requires(src_ptr_index <= source::size)
+struct EvalBF_Impl< source, recorder, Index<src_ptr_index>, memory, output, Index<mem_ptr_index>>{
+    using result = 
+        typename EvalBF_ImplHelper<
+            typename GetElementAt<source, Index<src_ptr_index>>::result,
+            source,
+            recorder,
+            Index<src_ptr_index>,
+            typename GetElementAt<memory, Index<mem_ptr_index>>::result,
+            memory,
+            output,
+            Index<mem_ptr_index>
+        >::result;
+};
+template< typename source, typename recorder, size_t src_ptr_index, typename memory, typename output, size_t mem_ptr_index>
+    requires(src_ptr_index > source::size)
+struct EvalBF_Impl< source, recorder, Index<src_ptr_index>, memory, output, Index<mem_ptr_index>>{
+    using result = output;
+};
+
+
+template <typename str>
+struct EvalBF {
+    using result =
+        typename EvalBF_Impl<
+            typename StringToCharList<str>::result,
+            List<>,
+            Index<1>,
+            List<Number<0>>,
+            List<>,
+            Index<1>
+        >::result;
 };
 
 /*
-EvalBF< command:List<Char<>...>, recorder::stack<Index<>...>, cmdPtr, memory::List<Char<>...>, output::List<Char<>...>, memPtr >
+template< typename source, typename recorder, typename cmd_ptr, typename memory, typename output, typename mem_ptr>
+struct EvalBF_Impl{};
+template< typename source, typename recorder, size_t src_ptr_index, typename memory, typename output, size_t mem_ptr_index>
+    requires(src_ptr_index <= source::size)
+struct EvalBF_Impl< source, recorder, Index<src_ptr_index>, memory, output, Index<mem_ptr_index>>{
+
+};
+template< typename source, typename recorder, size_t src_ptr_index, typename memory, typename output, size_t mem_ptr_index>
+    requires(src_ptr_index > source::size)
+struct EvalBF_Impl< source, recorder, Index<src_ptr_index>, memory, output, Index<mem_ptr_index>>{
+    using result = output;
+};
+*/
+
+/*
+template< typename source, typename recorder, typename cmdPtr, typename memory, typename output, typename memPtr>
+constexpr auto EvalBF_Impl() -> {
+    using curCmd = typename GetElementAt<source, cmdPtr>::result;
+    if constexpr ( std::is_same_v< curCmd, Char<'+'> >) {
+        EvalBF_Impl<source, recorder,>();
+    }
+}
+*/
+
+/*
+EvalBF< command:List<Char<>...>, recorder::List<Index<>...>, cmdPtr, memory::List<Char<>...>, output::List<Char<>...>, memPtr >
 
 old design:
 template<typename env = CharList<>, int idx = 0, typename outPut = CharList<>> 

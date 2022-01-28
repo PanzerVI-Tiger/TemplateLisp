@@ -12,8 +12,27 @@ void print(T x) {
     std::cout << x << std::endl;
 }
 
+template<typename list>
+struct PrintBF{};
+
+template<template<typename...> typename list, Data x, typename...tail>
+struct PrintBF<list<Number<x>, tail...>>{
+    static void print(){
+        printf("%c", char(x));
+        PrintBF<list<tail...>>::print();
+    }
+};
+template<template<typename...> typename list>
+struct PrintBF<list<>>{
+    static void print(){
+        printf("\n");
+    }
+};
+
+
 int main(void)
 {
+    /*
     print<Number<1>>();
     print<Bool<true>>();
     print<Char<'1'>>();
@@ -39,7 +58,12 @@ int main(void)
 
     using test3 = IncreaseOne< List<Number<1>, Number<2>, Number<3>, Number<4>>, Index<3>>::result;
     print<test3>();
+    */
 
+    PrintBF<
+        EvalBF<
+            String<"++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>">
+        >::result>::print();
     
     return 0;
 }
