@@ -493,20 +493,6 @@ struct EvalBF {
         >::result;
 };
 
-/*
-template< typename source, typename recorder, typename cmd_ptr, typename memory, typename output, typename mem_ptr>
-struct EvalBF_Impl{};
-template< typename source, typename recorder, size_t src_ptr_index, typename memory, typename output, size_t mem_ptr_index>
-    requires(src_ptr_index <= source::size)
-struct EvalBF_Impl< source, recorder, Index<src_ptr_index>, memory, output, Index<mem_ptr_index>>{
-
-};
-template< typename source, typename recorder, size_t src_ptr_index, typename memory, typename output, size_t mem_ptr_index>
-    requires(src_ptr_index > source::size)
-struct EvalBF_Impl< source, recorder, Index<src_ptr_index>, memory, output, Index<mem_ptr_index>>{
-    using result = output;
-};
-*/
 
 /*
 template< typename source, typename recorder, typename cmdPtr, typename memory, typename output, typename memPtr>
@@ -516,62 +502,7 @@ constexpr auto EvalBF_Impl() -> {
         EvalBF_Impl<source, recorder,>();
     }
 }
-*/
 
-/*
-EvalBF< command:List<Char<>...>, recorder::List<Index<>...>, cmdPtr, memory::List<Char<>...>, output::List<Char<>...>, memPtr >
-
-old design:
-template<typename env = CharList<>, int idx = 0, typename outPut = CharList<>> 
-struct BFEnv{};
-
-template<typename env, typename chr>
-struct EvalBrainFuck_Impl{};
-template<char... chars, int idx, typename outPut>
-struct EvalBrainFuck_Impl<BFEnv<CharList<chars...>, idx, outPut>, Char<'>'>>{
-    using result = BFEnv<CharList<chars...>, idx+1, outPut>;
-};
-template<char... chars, int idx, typename outPut>
-struct EvalBrainFuck_Impl<BFEnv<CharList<chars...>, idx, outPut>, Char<'<'>>{
-    using result = BFEnv<CharList<chars...>, idx-1, outPut>;
-};
-template<char... chars, int idx, typename outPut>
-struct EvalBrainFuck_Impl<BFEnv<CharList<chars...>, idx, outPut>, Char<'+'>>{
-    using result = BFEnv< typename IncreaseOne< CharList<chars...>, idx >::result, idx, outPut>;
-};
-template<char... chars, int idx, typename outPut>
-struct EvalBrainFuck_Impl<BFEnv<CharList<chars...>, idx, outPut>, Char<'-'>>{
-    using result = BFEnv< typename DecreaseOne< CharList<chars...>, idx >::result, idx, outPut>;
-};
-template<char... chars, int idx, typename outPut>
-struct EvalBrainFuck_Impl<BFEnv<CharList<chars...>, idx, outPut>, Char<'.'>>{
-
-    using result = BFEnv<
-                        CharList<chars...>, 
-                        idx, 
-                        typename ConcateCharList< 
-                                                outPut, 
-                                                CharList<GetCharListAt<CharList<chars...>, idx>::result>
-                                                > ::result
-                        >;
-};
-
-template <typename str, typename env = void>
-struct EvalBrainFuck {};
-template <typename chr, typename... rests, typename env>
-struct EvalBrainFuck<List<chr, rests...>, env> {
-    using result = typename EvalBrainFuck< 
-                                         List<rests...>,
-                                         typename EvalBrainFuck_Impl<BFEnv<CharList<>, 0, CharList<>>, chr>::result
-                                         > ::result;
-};
-template <typename chr, typename env>
-struct EvalBrainFuck<List<chr>, env> {
-    using result = typename EvalBrainFuck_Impl< env, chr >::result;
-};
-*/
-
-/*
 template <typename>
 struct StringToNumber {};
 template <Data str>
